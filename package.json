@@ -1,5 +1,5 @@
 {
-  "name": "smartbracelet-dashboard",
+  "name": "smartbelt-dashboard",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -24,6 +24,7 @@
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.6",
-    "typescript": "^5.5.3"
+    "typescript": "^5.9.3",
+    "typescript-language-server": "^5.3.0"
   }
 }

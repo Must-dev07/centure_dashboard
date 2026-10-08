@@ -125,7 +125,7 @@ export async function login(email: string, password: string): Promise<TokenPair>
 // ---------------------------------------------------------------- pagination
 
 /** Walks every page of a DRF paginated endpoint and returns the flattened list.
- * Shared by every list page (users, doctors, parents, bracelets, babies…) so
+ * Shared by every list page (users, doctors, parents, belts, babies…) so
  * pagination-walking logic lives in exactly one place. */
 export async function fetchAllPages<T>(basePath: string, maxPages = 100): Promise<T[]> {
   const out: T[] = [];

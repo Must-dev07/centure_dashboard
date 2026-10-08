@@ -35,7 +35,7 @@ export default function LoginPage() {
       <section id="login-card" className="card w-full max-w-md">
         <header className="mb-6 text-center">
           <span className="text-4xl">🩺</span>
-          <h1 className="mt-2 text-xl font-bold text-slate-900">Smart Bracelet Dashboard</h1>
+          <h1 className="mt-2 text-xl font-bold text-slate-900">Smart belt Dashboard</h1>
           <p className="mt-1 text-sm text-slate-500">Doctor &amp; administrator access</p>
         </header>
 

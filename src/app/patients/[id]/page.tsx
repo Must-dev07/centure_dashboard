@@ -1,8 +1,9 @@
 'use client';
 
 /**
- * Patient detail: identity card, latest reading, vitals charts, medical
- * history (doctor can add entries), and the patient's alert history.
+ * Patient detail: identity card, enrollment information (editable by an admin
+ * or the assigned doctor), latest reading, vitals charts, medical history
+ * (doctor can add entries), and the patient's alert history.
  */
 
 import Link from 'next/link';
@@ -10,10 +11,28 @@ import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import Shell from '@/components/Shell';
 import VitalsCharts from '@/components/VitalsCharts';
+import BabyEditForm from '@/components/BabyEditForm';
 import { Empty, ErrorBox, Loading, PageTitle, SeverityBadge } from '@/components/ui';
-import { ApiError, apiFetch } from '@/lib/api';
-import { ageFromBirthDate, alertTypeLabel, fmtDate, fmtDateTime, fmtNumber } from '@/lib/format';
-import type { Alert, Baby, Measurement, MeasurementQueryRaw, Paginated } from '@/lib/types';
+import { ApiError, apiFetch, getStoredUser } from '@/lib/api';
+import { fetchDoctors, fetchMyDoctorId } from '@/lib/doctors';
+import {
+  ageFromBirthDate,
+  alertTypeLabel,
+  enrollmentReasonLabel,
+  fmtDate,
+  fmtDateTime,
+  fmtNumber,
+  parentLabel,
+} from '@/lib/format';
+import type {
+  Alert,
+  Baby,
+  Doctor,
+  Measurement,
+  MeasurementQueryRaw,
+  Paginated,
+  UserSummary,
+} from '@/lib/types';
 
 export default function PatientDetailPage() {
   const params = useParams<{ id: string }>();
@@ -23,6 +42,13 @@ export default function PatientDetailPage() {
   const [latest, setLatest] = useState<Measurement | null>(null);
   const [alerts, setAlerts] = useState<Alert[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // enrollment edit (admin, or the doctor assigned to this baby)
+  const [user, setUser] = useState<UserSummary | null>(null);
+  const [myDoctorId, setMyDoctorId] = useState<number | null>(null);
+  const [doctors, setDoctors] = useState<Doctor[] | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editNotice, setEditNotice] = useState<string | null>(null);
 
   // medical-history form state
   const [title, setTitle] = useState('');
@@ -59,6 +85,22 @@ export default function PatientDetailPage() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    const me = getStoredUser();
+    setUser(me);
+    if (me?.role === 'doctor') {
+      fetchMyDoctorId(me).then(setMyDoctorId).catch(() => setMyDoctorId(null));
+    } else if (me?.role === 'admin') {
+      fetchDoctors().then(setDoctors).catch(() => setDoctors([]));
+    }
+  }, []);
+
+  // UI gating only — the backend enforces who may PATCH (assigned doctor or admin).
+  const canEdit =
+    !!baby &&
+    (user?.role === 'admin' ||
+      (user?.role === 'doctor' && myDoctorId !== null && baby.assigned_doctor === myDoctorId));
+
   async function addHistoryEntry(e: React.FormEvent) {
     e.preventDefault();
     setSavingEntry(true);
@@ -86,7 +128,7 @@ export default function PatientDetailPage() {
         <>
           <PageTitle
             title={baby.name}
-            sub={`${ageFromBirthDate(baby.birth_date)} old · born ${fmtDate(baby.birth_date)} · ${baby.weight_grams} g · parent: ${baby.parent_name || '—'}`}
+            sub={`${ageFromBirthDate(baby.birth_date)} old · born ${fmtDate(baby.birth_date)} · ${baby.weight_grams} g · parent: ${parentLabel(baby)}`}
             actions={
               <Link href={`/reports?baby_id=${baby.id}`} className="btn-primary">
                 Generate PDF report
@@ -108,9 +150,9 @@ export default function PatientDetailPage() {
               </p>
             </article>
             <article className="card text-center">
-              <p className="text-xs font-semibold uppercase text-slate-500">SpO2</p>
+              <p className="text-xs font-semibold uppercase text-slate-500">Respiration</p>
               <p className="mt-1 text-2xl font-bold text-blue-600">
-                {latest ? `${fmtNumber(latest.spo2, 0)} %` : '—'}
+                {latest ? `${fmtNumber(latest.respiratory_rate, 0)} br/min` : '—'}
               </p>
             </article>
             <article className="card text-center">
@@ -119,6 +161,71 @@ export default function PatientDetailPage() {
                 {latest ? fmtDateTime(latest.recorded_at) : 'No data in the last hour'}
               </p>
             </article>
+          </section>
+
+          <section id="enrollment" className="card mb-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-semibold text-slate-900">Enrollment</h2>
+              {canEdit && !editing ? (
+                <button
+                  type="button"
+                  className="btn-secondary !px-3 !py-1 text-xs"
+                  onClick={() => {
+                    setEditNotice(null);
+                    setEditing(true);
+                  }}
+                >
+                  Edit
+                </button>
+              ) : null}
+            </div>
+            {editNotice ? (
+              <p className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                {editNotice}
+              </p>
+            ) : null}
+            {editing ? (
+              <BabyEditForm
+                baby={baby}
+                isAdmin={user?.role === 'admin'}
+                doctors={doctors}
+                onCancel={() => setEditing(false)}
+                onSaved={(updated) => {
+                  setBaby(updated);
+                  setEditing(false);
+                  setEditNotice('Changes saved.');
+                }}
+              />
+            ) : (
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-slate-500">Reason</dt>
+                  <dd className="font-medium text-slate-800">{enrollmentReasonLabel(baby.enrollment_reason)}</dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">Gestational age</dt>
+                  <dd className="font-medium text-slate-800">
+                    {baby.gestational_age_weeks === null ? '—' : `${baby.gestational_age_weeks} weeks`}
+                  </dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-slate-500">Notes</dt>
+                  <dd className="whitespace-pre-wrap text-slate-800">{baby.enrollment_notes || '—'}</dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">Parent</dt>
+                  <dd className={baby.parent === null ? 'font-medium text-amber-700' : 'font-medium text-slate-800'}>
+                    {parentLabel(baby)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">Enrolled by</dt>
+                  <dd className="font-medium text-slate-800">
+                    {user && baby.enrolled_by === user.id ? 'You' : `User #${baby.enrolled_by}`}
+                  </dd>
+                </div>
+              </dl>
+            )}
           </section>
 
           <VitalsCharts babyId={baby.id} />

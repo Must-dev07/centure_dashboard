@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Dashboard home: patient count, active/critical alert counts, bracelet
+ * Dashboard home: patient count, active/critical alert counts, belt
  * fleet status, and the latest active alerts for quick triage.
  */
 
@@ -11,11 +11,11 @@ import Shell from '@/components/Shell';
 import { Empty, ErrorBox, Loading, PageTitle, SeverityBadge, StatCard } from '@/components/ui';
 import { fetchAllPages } from '@/lib/api';
 import { alertTypeLabel, fmtDateTime } from '@/lib/format';
-import type { Alert, Baby, Bracelet } from '@/lib/types';
+import type { Alert, Baby, belt } from '@/lib/types';
 
 interface DashboardData {
   babies: Baby[];
-  bracelets: Bracelet[];
+  belts: belt[];
   activeAlerts: Alert[];
 }
 
@@ -27,12 +27,12 @@ export default function DashboardPage() {
     let cancelled = false;
     async function load() {
       try {
-        const [babies, bracelets, activeAlerts] = await Promise.all([
+        const [babies, belts, activeAlerts] = await Promise.all([
           fetchAllPages<Baby>('/api/v1/babies/'),
-          fetchAllPages<Bracelet>('/api/v1/bracelets/'),
+          fetchAllPages<belt>('/api/v1/belts/'),
           fetchAllPages<Alert>('/api/v1/alerts/?status=active'),
         ]);
-        if (!cancelled) setData({ babies, bracelets, activeAlerts });
+        if (!cancelled) setData({ babies, belts, activeAlerts });
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load dashboard.');
       }
@@ -67,8 +67,8 @@ export default function DashboardPage() {
               sub="need attention now"
             />
             <StatCard
-              label="Bracelets online"
-              value={`${data.bracelets.filter((b) => b.status === 'active').length}/${data.bracelets.length}`}
+              label="belts online"
+              value={`${data.belts.filter((b) => b.status === 'active').length}/${data.belts.length}`}
               accent="brand"
               sub="active devices"
             />
@@ -116,9 +116,9 @@ export default function DashboardPage() {
           </section>
 
           <section id="fleet-status" className="card mt-6">
-            <h2 className="mb-4 text-lg font-semibold text-slate-900">Bracelet fleet</h2>
-            {data.bracelets.length === 0 ? (
-              <Empty message="No bracelets registered yet." />
+            <h2 className="mb-4 text-lg font-semibold text-slate-900">belt fleet</h2>
+            {data.belts.length === 0 ? (
+              <Empty message="No belts registered yet." />
             ) : (
               <div className="overflow-x-auto">
                 <table className="table-base">
@@ -133,7 +133,7 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.bracelets.map((b) => (
+                    {data.belts.map((b) => (
                       <tr key={b.id}>
                         <td className="font-mono text-xs">{b.serial_number}</td>
                         <td>{b.firmware_version || '—'}</td>

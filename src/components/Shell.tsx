@@ -15,6 +15,8 @@ import { MEDICAL_DISCLAIMER, type UserSummary } from '@/lib/types';
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
   { href: '/patients', label: 'Patients', icon: '👶' },
+  { href: '/enroll', label: 'Enroll newborn', icon: '➕' },
+  { href: '/pending-enrollments', label: 'Pending enrollments', icon: '✉️' },
   { href: '/alerts', label: 'Alerts', icon: '🚨' },
   { href: '/notifications', label: 'Notifications', icon: '🔔' },
   { href: '/statistics', label: 'Statistics', icon: '📈' },
@@ -55,7 +57,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
           <span className="text-2xl">🩺</span>
           <div>
-            <p className="text-sm font-bold text-slate-900">Smart Bracelet</p>
+            <p className="text-sm font-bold text-slate-900">Smart belt</p>
             <p className="text-xs text-slate-500">Doctor Dashboard</p>
           </div>
         </div>

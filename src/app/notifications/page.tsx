@@ -16,7 +16,7 @@ import type { AppNotification, NotificationCategory } from '@/lib/types';
 
 const CATEGORY_ICON: Record<NotificationCategory, string> = {
   alert: '🚨',
-  bracelet: '⌚',
+  belt: '⌚',
   medical: '🩺',
   system: 'ℹ️',
 };
@@ -91,7 +91,7 @@ export default function NotificationsPage() {
       />
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {(['all', 'alert', 'bracelet', 'medical', 'system'] as const).map((c) => (
+        {(['all', 'alert', 'belt', 'medical', 'system'] as const).map((c) => (
           <button
             key={c}
             onClick={() => setCategory(c)}

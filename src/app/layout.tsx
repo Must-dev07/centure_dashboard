@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Smart Bracelet — Doctor Dashboard',
+  title: 'Smart belt — Doctor Dashboard',
   description:
-    'Clinician dashboard for the newborn smart bracelet monitoring ecosystem. Not a medical diagnosis device.',
+    'Clinician dashboard for the newborn smart belt monitoring ecosystem. Not a medical diagnosis device.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

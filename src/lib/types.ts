@@ -35,20 +35,76 @@ export interface MedicalHistoryEntry {
   created_at: string;
 }
 
+export type Gender = 'male' | 'female' | 'unspecified';
+
+export type EnrollmentReason = 'prematurity' | 'clinical_sign' | 'congenital_condition' | 'other';
+
 export interface Baby {
   id: number;
   name: string;
   birth_date: string;
   weight_grams: number;
-  gender: 'male' | 'female' | 'unspecified';
-  parent: number;
+  gender: Gender;
+  /** null until the parent accepts their invitation (baby enrolled by staff first). */
+  parent: number | null;
   parent_name: string;
   assigned_doctor: number | null;
+  enrollment_reason: EnrollmentReason;
+  enrollment_notes: string;
+  gestational_age_weeks: number | null;
+  /** User id of the doctor/admin who enrolled the baby (audit). */
+  enrolled_by: number;
   medical_history: MedicalHistoryEntry[];
   created_at: string;
 }
 
-export interface Bracelet {
+/** POST /api/v1/babies/ payload (doctor/admin enrollment). */
+export interface BabyCreateRequest {
+  name: string;
+  birth_date: string;
+  weight_grams: number;
+  gender: Gender;
+  assigned_doctor?: number | null;
+  enrollment_reason: EnrollmentReason;
+  enrollment_notes: string;
+  gestational_age_weeks: number | null;
+  parent_email: string;
+}
+
+export type ParentStatus = 'linked' | 'invitation_pending';
+
+/** POST /api/v1/babies/ response: `invitation_link` is set only when an invitation is pending. */
+export type BabyCreateResponse = Baby & {
+  parent_status: ParentStatus;
+  invitation_link: string | null;
+};
+
+export type InvitationStatus = 'pending' | 'accepted' | 'expired';
+
+export interface InvitationBaby {
+  id: number;
+  name: string;
+}
+
+/** GET /api/v1/invitations/ item. The backend never exposes the token here. */
+export interface Invitation {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  status: InvitationStatus;
+  created_by: number;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+  babies: InvitationBaby[];
+}
+
+/** POST /api/v1/invitations/{id}/resend/ response: the invitation plus its new link. */
+export type InvitationResendResponse = Invitation & { invitation_link: string };
+
+export interface belt {
   id: number;
   serial_number: string;
   firmware_version: string;
@@ -60,20 +116,13 @@ export interface Bracelet {
   created_at: string;
 }
 
-export interface Movement {
-  accel?: [number, number, number];
-  gyro?: [number, number, number];
-  magnitude?: number;
-}
-
 export interface Measurement {
   id: number;
   baby: number;
-  bracelet: number;
+  belt: number;
   heart_rate: number | null;
   temperature: number | null;
-  spo2: number | null;
-  movement: Movement | null;
+  respiratory_rate: number | null;
   battery: number | null;
   skin_contact: boolean | null;
   recorded_at: string;
@@ -84,7 +133,7 @@ export interface MeasurementBucket {
   bucket: string;
   heart_rate_avg: number | null;
   temperature_avg: number | null;
-  spo2_avg: number | null;
+  respiratory_rate_avg: number | null;
   heart_rate_min: number | null;
   heart_rate_max: number | null;
   count: number;
@@ -110,7 +159,7 @@ export interface Alert {
   id: number;
   baby: number;
   baby_name: string;
-  bracelet: number | null;
+  belt: number | null;
   type: string;
   severity: AlertSeverity;
   message: string;
@@ -126,7 +175,7 @@ export interface Alert {
   disclaimer: string;
 }
 
-export type NotificationCategory = 'alert' | 'bracelet' | 'medical' | 'system';
+export type NotificationCategory = 'alert' | 'belt' | 'medical' | 'system';
 
 export interface AppNotification {
   id: number;

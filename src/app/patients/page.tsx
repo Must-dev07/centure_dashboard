@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Shell from '@/components/Shell';
 import { Empty, ErrorBox, Loading, PageTitle } from '@/components/ui';
 import { apiFetch } from '@/lib/api';
-import { ageFromBirthDate, fmtDate } from '@/lib/format';
+import { ageFromBirthDate, fmtDate, parentLabel } from '@/lib/format';
 import type { Baby, Paginated } from '@/lib/types';
 
 export default function PatientsPage() {
@@ -47,6 +47,11 @@ export default function PatientsPage() {
       <PageTitle
         title="Patients"
         sub="Babies assigned to you (doctors see their assigned patients; admins see all)."
+        actions={
+          <Link href="/enroll" className="btn-primary">
+            Enroll a newborn
+          </Link>
+        }
       />
       <div className="mb-4 max-w-sm">
         <input
@@ -89,7 +94,7 @@ export default function PatientsPage() {
                     <td>{fmtDate(b.birth_date)}</td>
                     <td>{b.weight_grams} g</td>
                     <td>{b.gender === 'male' ? 'Male' : b.gender === 'female' ? 'Female' : '—'}</td>
-                    <td className="text-slate-600">{b.parent_name || '—'}</td>
+                    <td className={b.parent === null ? 'text-amber-700' : 'text-slate-600'}>{parentLabel(b)}</td>
                     <td>
                       <Link href={`/patients/${b.id}`} className="btn-secondary !px-3 !py-1 text-xs">
                         Open

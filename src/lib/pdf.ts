@@ -43,7 +43,7 @@ export function generatePatientReport(input: ReportInput): void {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(15);
   doc.setFont('helvetica', 'bold');
-  doc.text('Smart Bracelet — Patient Monitoring Report', 14, 11);
+  doc.text('Smart belt — Patient Monitoring Report', 14, 11);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text(`Generated ${fmtDateTime(new Date().toISOString())} by ${generatedBy}`, 14, 18);
@@ -68,7 +68,7 @@ export function generatePatientReport(input: ReportInput): void {
   // Vitals summary table
   const hr = agg(buckets.map((b) => b.heart_rate_avg));
   const temp = agg(buckets.map((b) => b.temperature_avg));
-  const spo2 = agg(buckets.map((b) => b.spo2_avg));
+  const resp = agg(buckets.map((b) => b.respiratory_rate_avg));
   const samples = buckets.reduce((a, b) => a + b.count, 0);
 
   autoTable(doc, {
@@ -77,7 +77,7 @@ export function generatePatientReport(input: ReportInput): void {
     body: [
       ['Heart rate (bpm)', f(hr.min, 0), f(hr.avg, 0), f(hr.max, 0), '90 – 180'],
       ['Temperature (°C)', f(temp.min), f(temp.avg), f(temp.max), '36.0 – 38.0'],
-      ['SpO2 (%)', f(spo2.min, 0), f(spo2.avg, 0), f(spo2.max, 0), '≥ 92'],
+      ['Respiration (breaths/min)', f(resp.min, 0), f(resp.avg, 0), f(resp.max, 0), '30 – 60'],
     ],
     styles: { fontSize: 9 },
     headStyles: { fillColor: [29, 108, 241] },

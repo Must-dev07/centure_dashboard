@@ -4,7 +4,7 @@
  * Chart.js vitals visualisation for one baby.
  * Fetches /api/v1/measurements/ with a period selector, adaptive granularity
  * (raw <6h, minute <48h, hour <14d, day otherwise) and renders HR / temp /
- * SpO2 line charts with clinically-derived threshold lines.
+ * respiratory rate line charts with clinically-derived threshold lines.
  */
 
 import {
@@ -53,30 +53,30 @@ interface Series {
   labels: string[];
   hr: (number | null)[];
   temp: (number | null)[];
-  spo2: (number | null)[];
+  resp: (number | null)[];
 }
 
 function toSeries(res: MeasurementQueryResponse): Series {
   const labels: string[] = [];
   const hr: (number | null)[] = [];
   const temp: (number | null)[] = [];
-  const spo2: (number | null)[] = [];
+  const resp: (number | null)[] = [];
   if (res.granularity === 'raw') {
     for (const m of res.results) {
       labels.push(new Date(m.recorded_at).toLocaleString(undefined, { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }));
       hr.push(m.heart_rate);
       temp.push(m.temperature);
-      spo2.push(m.spo2);
+      resp.push(m.respiratory_rate);
     }
   } else {
     for (const b of res.results) {
       labels.push(new Date(b.bucket).toLocaleString(undefined, { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }));
       hr.push(b.heart_rate_avg);
       temp.push(b.temperature_avg);
-      spo2.push(b.spo2_avg);
+      resp.push(b.respiratory_rate_avg);
     }
   }
-  return { labels, hr, temp, spo2 };
+  return { labels, hr, temp, resp };
 }
 
 function thresholdLine(labels: string[], value: number) {
@@ -162,11 +162,12 @@ export default function VitalsCharts({ babyId }: { babyId: number }) {
                     fill: true,
                     spanGaps: true,
                   },
-                  { label: 'High (180)', data: thresholdLine(series.labels, 180), borderColor: 'rgba(225,29,72,0.35)', borderDash: [6, 6], pointStyle: false as const },
-                  { label: 'Low (90)', data: thresholdLine(series.labels, 90), borderColor: 'rgba(225,29,72,0.35)', borderDash: [6, 6], pointStyle: false as const },
+                  { label: 'High at rest (100)', data: thresholdLine(series.labels, 100), borderColor: 'rgba(225,29,72,0.35)', borderDash: [6, 6], pointStyle: false as const },
+                  { label: 'High after effort (160)', data: thresholdLine(series.labels, 160), borderColor: 'rgba(225,29,72,0.35)', borderDash: [6, 6], pointStyle: false as const },
+                  { label: 'Low (50)', data: thresholdLine(series.labels, 50), borderColor: 'rgba(225,29,72,0.35)', borderDash: [6, 6], pointStyle: false as const },
                 ],
               }}
-              options={{ ...BASE_OPTS, scales: { ...BASE_OPTS.scales, y: { suggestedMin: 60, suggestedMax: 220 } } }}
+              options={{ ...BASE_OPTS, scales: { ...BASE_OPTS.scales, y: { suggestedMin: 40, suggestedMax: 200 } } }}
             />
           </div>
           <div className="h-64">
@@ -182,7 +183,7 @@ export default function VitalsCharts({ babyId }: { babyId: number }) {
                     fill: true,
                     spanGaps: true,
                   },
-                  { label: 'High (38.0)', data: thresholdLine(series.labels, 38.0), borderColor: 'rgba(217,119,6,0.35)', borderDash: [6, 6], pointStyle: false as const },
+                  { label: 'Fever (38.0)', data: thresholdLine(series.labels, 38.0), borderColor: 'rgba(217,119,6,0.35)', borderDash: [6, 6], pointStyle: false as const },
                   { label: 'Low (36.0)', data: thresholdLine(series.labels, 36.0), borderColor: 'rgba(217,119,6,0.35)', borderDash: [6, 6], pointStyle: false as const },
                 ],
               }}
@@ -195,17 +196,18 @@ export default function VitalsCharts({ babyId }: { babyId: number }) {
                 labels: series.labels,
                 datasets: [
                   {
-                    label: 'SpO2 (%)',
-                    data: series.spo2,
+                    label: 'Respiration (breaths/min)',
+                    data: series.resp,
                     borderColor: '#2563eb',
                     backgroundColor: 'rgba(37,99,235,0.08)',
                     fill: true,
                     spanGaps: true,
                   },
-                  { label: 'Low (92)', data: thresholdLine(series.labels, 92), borderColor: 'rgba(37,99,235,0.35)', borderDash: [6, 6], pointStyle: false as const },
+                  { label: 'High at rest (30)', data: thresholdLine(series.labels, 30), borderColor: 'rgba(37,99,235,0.35)', borderDash: [6, 6], pointStyle: false as const },
+                  { label: 'Low (12)', data: thresholdLine(series.labels, 12), borderColor: 'rgba(37,99,235,0.35)', borderDash: [6, 6], pointStyle: false as const },
                 ],
               }}
-              options={{ ...BASE_OPTS, scales: { ...BASE_OPTS.scales, y: { suggestedMin: 80, suggestedMax: 100 } } }}
+              options={{ ...BASE_OPTS, scales: { ...BASE_OPTS.scales, y: { suggestedMin: 5, suggestedMax: 50 } } }}
             />
           </div>
         </div>

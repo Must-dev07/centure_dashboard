@@ -3,13 +3,14 @@
 /**
  * Alerts triage page: filter by status/severity, acknowledge alerts.
  * Acknowledging non-persistent alerts also resolves them server-side.
+ * Admins see alerts read-only: only the doctor treats them.
  */
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import Shell from '@/components/Shell';
 import { Empty, ErrorBox, Loading, PageTitle, SeverityBadge } from '@/components/ui';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, getStoredUser } from '@/lib/api';
 import { alertTypeLabel, fmtDateTime } from '@/lib/format';
 import type { Alert, Paginated } from '@/lib/types';
 import { MEDICAL_DISCLAIMER } from '@/lib/types';
@@ -24,6 +25,11 @@ export default function AlertsPage() {
   const [severity, setSeverity] = useState<SeverityFilter>('all');
   const [ackBusy, setAckBusy] = useState<number | null>(null);
   const [resolveBusy, setResolveBusy] = useState<number | null>(null);
+  const [canTreat, setCanTreat] = useState(false);
+
+  useEffect(() => {
+    setCanTreat(getStoredUser()?.role === 'doctor');
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -125,7 +131,7 @@ export default function AlertsPage() {
                   <th>Value</th>
                   <th>Triggered</th>
                   <th>Status</th>
-                  <th></th>
+                  {canTreat ? <th></th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -160,6 +166,7 @@ export default function AlertsPage() {
                         </span>
                       ) : null}
                     </td>
+                    {canTreat ? (
                     <td>
                       <div className="flex gap-2">
                         {!a.acknowledged_at ? (
@@ -183,6 +190,7 @@ export default function AlertsPage() {
                         ) : null}
                       </div>
                     </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
