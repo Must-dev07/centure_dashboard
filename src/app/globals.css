@@ -44,6 +44,11 @@ body {
 }
 
 /* ---------- Tables ---------- */
+/* Wrap every <table> in <div className="table-wrap"> so wide tables scroll sideways on phones */
+.table-wrap {
+  @apply -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0;
+}
+
 .table-base {
   @apply w-full text-left text-sm;
 }

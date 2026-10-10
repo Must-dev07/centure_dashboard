@@ -5,9 +5,11 @@
  * Redirects to /login when no session is present. Admin-only links are
  * hidden for doctors (backend enforces authorization regardless).
  *
- * Layout follows the Figma "Clinical Doctor Dashboard" frame:
- * grouped sidebar (MAIN CLINICAL / CLINICAL TRIAGE / SYSTEM ADMINISTRATION),
- * top bar with safety pill + primary action + profile.
+ * Responsive behaviour of the sidebar (ONE <aside>, so ids stay unique):
+ *  - Phone / tablet (< 1024px): hidden off-screen; the ☰ button slides it in as a drawer.
+ *    Closes on: backdrop click, ✕ button, Escape key, or choosing a page.
+ *  - Desktop (>= 1024px): always visible; the toggle button collapses it to an
+ *    icon-only rail (and back). The choice is remembered in localStorage.
  */
 
 import Link from 'next/link';
@@ -18,7 +20,7 @@ import { getStoredUser, isLoggedIn, logout } from '@/lib/api';
 import { MEDICAL_DISCLAIMER, type UserSummary } from '@/lib/types';
 
 type NavItem = { href: string; label: string; icon: IconName };
-type NavGroup = { title: string; items: NavItem[]; adminOnly?: boolean };
+type NavGroup = { title: string; items: NavItem[] };
 
 const GROUPS: NavGroup[] = [
   {
@@ -33,10 +35,10 @@ const GROUPS: NavGroup[] = [
   {
     title: 'Clinical triage',
     items: [
-      { href: '/alerts', label: 'Alerts & triage', icon: 'alert' },
+      { href: '/alerts', label: 'Alerts', icon: 'alert' },
       { href: '/notifications', label: 'Notifications', icon: 'bell' },
-      { href: '/statistics', label: 'Clinical statistics', icon: 'chart' },
-      { href: '/reports', label: 'Patient reports', icon: 'file' },
+      { href: '/statistics', label: 'Statistics', icon: 'chart' },
+      { href: '/reports', label: 'Reports', icon: 'file' },
     ],
   },
   {
@@ -45,7 +47,9 @@ const GROUPS: NavGroup[] = [
   },
 ];
 
-const ADMIN_ITEMS: NavItem[] = [{ href: '/users', label: 'User management', icon: 'users' }];
+const ADMIN_ITEMS: NavItem[] = [{ href: '/users', label: 'Users', icon: 'users' }];
+
+const COLLAPSE_KEY = 'sb_sidebar_collapsed';
 
 function initials(u: UserSummary | null) {
   if (!u) return '';
@@ -57,7 +61,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<UserSummary | null>(null);
   const [ready, setReady] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false); // drawer (< lg)
+  const [collapsed, setCollapsed] = useState(false); // icon rail (>= lg)
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -65,131 +70,199 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       return;
     }
     setUser(getStoredUser());
+    try {
+      setCollapsed(localStorage.getItem(COLLAPSE_KEY) === '1');
+    } catch {
+      /* localStorage can be blocked: just use the default */
+    }
     setReady(true);
   }, [router]);
 
-  // Close the mobile drawer whenever the page changes.
+  // Close the drawer whenever the page changes.
   useEffect(() => {
-    setMenuOpen(false);
+    setMobileOpen(false);
   }, [pathname]);
 
-  if (!ready) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-ink-faint">Loading…</div>
-    );
+  // While the drawer is open: Escape closes it, and the page behind does not scroll.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
+
+  function toggleCollapsed() {
+    setCollapsed((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
   }
 
-  // Admin sees the extra "User management" link inside the System group.
+  if (!ready) {
+    return <div className="flex min-h-screen items-center justify-center text-ink-faint">Loading…</div>;
+  }
+
+  // Admin sees the extra "Users" link inside the System group.
   const groups = GROUPS.map((g) =>
     g.title === 'System' && user?.role === 'admin' ? { ...g, items: [...g.items, ...ADMIN_ITEMS] } : g,
   );
 
-  const sidebar = (
-    <div className="flex h-full flex-col bg-white">
-      <div className="flex h-16 items-center gap-3 px-6">
-        <span className="flex h-8 w-8 items-center justify-center rounded bg-brand-600 text-white">
-          <Icon name="pulse" className="h-4 w-4" />
-        </span>
-        <div>
-          <p className="text-[18px] font-semibold leading-[18px] text-ink">Centure MD</p>
-          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.5px] text-ink-muted">
-            Neonatal telemetry
-          </p>
-        </div>
-      </div>
-
-      <nav id="main-nav" aria-label="Main" className="flex-1 space-y-4 overflow-y-auto p-3">
-        {groups.map((group) => (
-          <div key={group.title}>
-            <p className="eyebrow px-3 pb-2 pt-1">{group.title}</p>
-            <ul className="space-y-1">
-              {group.items.map((item) => {
-                const active = pathname.startsWith(item.href);
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      aria-current={active ? 'page' : undefined}
-                      className={`flex items-center gap-3 rounded px-3 py-2 text-sm transition ${
-                        active
-                          ? 'bg-brand-500 text-white'
-                          : 'text-ink-muted hover:bg-surface-low hover:text-ink'
-                      }`}
-                    >
-                      <Icon name={item.icon} className="h-4 w-4 shrink-0" />
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </nav>
-
-      {/* Safety notice stays visible on every page (prototype, not a medical device). */}
-      <div className="space-y-2 p-3">
-        <div className="rounded bg-surface-low p-3">
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-ink">
-            <Icon name="shield" className="h-3.5 w-3.5 text-brand-600" />
-            Clinical protocol disclaimer
-          </p>
-          <p className="mt-1 text-[11px] leading-snug text-ink-muted">{MEDICAL_DISCLAIMER}</p>
-        </div>
-        <button
-          id="logout-button"
-          className="flex w-full items-center gap-3 rounded px-3 py-2 text-sm text-ink-muted transition hover:bg-surface-low hover:text-ink"
-          onClick={async () => {
-            await logout();
-            router.replace('/login');
-          }}
-        >
-          <Icon name="logout" className="h-4 w-4" />
-          Sign out
-        </button>
-      </div>
-    </div>
-  );
+  // Helper: classes that only apply on desktop when the rail is collapsed.
+  const hideWhenCollapsed = collapsed ? 'lg:hidden' : '';
 
   return (
     <div className="flex min-h-screen">
-      {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 shadow-[1px_0_4px_rgba(0,0,0,0.04)] md:block">
-        {sidebar}
+      {/* Dark backdrop behind the drawer (phone / tablet only) */}
+      <div
+        aria-hidden
+        onClick={() => setMobileOpen(false)}
+        className={`fixed inset-0 z-40 bg-slate-900/40 transition-opacity duration-200 lg:hidden ${
+          mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+      />
+
+      <aside
+        aria-label="Sidebar"
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-white shadow-xl transition-[transform,visibility,width] duration-200 ease-out
+          lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:translate-x-0 lg:shadow-[1px_0_4px_rgba(0,0,0,0.04)] lg:visible
+          ${collapsed ? 'lg:w-[72px]' : 'lg:w-64'}
+          ${mobileOpen ? 'translate-x-0 visible' : '-translate-x-full invisible'}`}
+      >
+        {/* Brand */}
+        <div className={`flex h-16 shrink-0 items-center gap-3 px-5 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
+            <Icon name="pulse" className="h-5 w-5" />
+          </span>
+          <div className={`min-w-0 flex-1 ${hideWhenCollapsed}`}>
+            <p className="truncate text-base font-bold leading-tight text-ink">Smart belt</p>
+            <p className="truncate text-[11px] text-ink-muted">Doctor Dashboard</p>
+          </div>
+          <button
+            className="rounded p-1.5 text-ink-muted hover:bg-surface-low lg:hidden"
+            aria-label="Close menu"
+            onClick={() => setMobileOpen(false)}
+          >
+            <Icon name="close" className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <nav id="main-nav" aria-label="Main" className="flex-1 space-y-3 overflow-y-auto overflow-x-hidden p-3">
+          {groups.map((group) => (
+            <div key={group.title}>
+              <p className={`eyebrow px-3 pb-2 pt-1 ${hideWhenCollapsed}`}>{group.title}</p>
+              {/* thin divider replaces the title in the collapsed rail */}
+              <div aria-hidden className={`mx-2 mb-2 hidden h-px bg-surface-mid ${collapsed ? 'lg:block' : ''}`} />
+              <ul className="space-y-1">
+                {group.items.map((item) => {
+                  const active = pathname.startsWith(item.href);
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        title={collapsed ? item.label : undefined}
+                        aria-current={active ? 'page' : undefined}
+                        className={`flex items-center gap-3 rounded px-3 py-2 text-sm transition ${
+                          collapsed ? 'lg:justify-center lg:px-0' : ''
+                        } ${
+                          active
+                            ? 'bg-brand-500 text-white'
+                            : 'text-ink-muted hover:bg-surface-low hover:text-ink'
+                        }`}
+                      >
+                        <Icon name={item.icon} className="h-[18px] w-[18px] shrink-0" />
+                        <span className={`truncate ${hideWhenCollapsed}`}>{item.label}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
+
+        {/* Footer: disclaimer + sign out */}
+        <div className="shrink-0 space-y-2 p-3">
+          <div className={`rounded bg-surface-low p-3 ${hideWhenCollapsed}`}>
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-ink">
+              <Icon name="shield" className="h-3.5 w-3.5 text-brand-600" />
+              Clinical disclaimer
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-ink-muted">{MEDICAL_DISCLAIMER}</p>
+          </div>
+          {/* In the collapsed rail the disclaimer shrinks to an icon (full text on hover) */}
+          <div
+            title={MEDICAL_DISCLAIMER}
+            className={`hidden justify-center rounded bg-surface-low p-2 text-brand-600 ${collapsed ? 'lg:flex' : ''}`}
+          >
+            <Icon name="shield" className="h-[18px] w-[18px]" />
+            <span className="sr-only">{MEDICAL_DISCLAIMER}</span>
+          </div>
+
+          <button
+            id="logout-button"
+            title={collapsed ? 'Sign out' : undefined}
+            className={`flex w-full items-center gap-3 rounded px-3 py-2 text-sm text-ink-muted transition hover:bg-surface-low hover:text-ink ${
+              collapsed ? 'lg:justify-center lg:px-0' : ''
+            }`}
+            onClick={async () => {
+              await logout();
+              router.replace('/login');
+            }}
+          >
+            <Icon name="logout" className="h-[18px] w-[18px] shrink-0" />
+            <span className={hideWhenCollapsed}>Sign out</span>
+          </button>
+        </div>
       </aside>
 
-      {/* Mobile drawer */}
-      {menuOpen ? (
-        <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
-          <button
-            className="absolute inset-0 bg-slate-900/40"
-            aria-label="Close menu"
-            onClick={() => setMenuOpen(false)}
-          />
-          <div className="absolute inset-y-0 left-0 w-64 shadow-xl">{sidebar}</div>
-        </div>
-      ) : null}
-
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-surface-mid bg-white/90 px-4 backdrop-blur md:px-6">
-          <div className="flex min-w-0 items-center gap-3">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-surface-mid bg-white/90 px-3 backdrop-blur sm:px-6">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            {/* < lg: open the drawer */}
             <button
-              className="rounded p-2 text-ink-muted hover:bg-surface-low md:hidden"
+              className="rounded p-2 text-ink-muted hover:bg-surface-low lg:hidden"
               aria-label="Open menu"
-              onClick={() => setMenuOpen(true)}
+              aria-expanded={mobileOpen}
+              aria-controls="main-nav"
+              onClick={() => setMobileOpen(true)}
             >
               <Icon name="menu" className="h-5 w-5" />
             </button>
-            <span className="hidden items-center gap-1.5 rounded bg-surface-high px-2.5 py-1 text-[11px] font-medium text-brand-800 sm:inline-flex">
-              <Icon name="info" className="h-3.5 w-3.5" />
-              Non-diagnostic prototype — not a medical device
+            {/* >= lg: collapse / expand the rail */}
+            <button
+              className="hidden rounded p-2 text-ink-muted hover:bg-surface-low lg:inline-flex"
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-pressed={collapsed}
+              onClick={toggleCollapsed}
+            >
+              <Icon name="menu" className="h-5 w-5" />
+            </button>
+
+            <span className="hidden min-w-0 items-center gap-1.5 truncate rounded bg-surface-high px-2.5 py-1 text-[11px] font-medium text-brand-800 md:inline-flex">
+              <Icon name="info" className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">
+                Non-diagnostic prototype<span className="hidden xl:inline"> — not a medical device</span>
+              </span>
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link href="/enroll" className="btn-primary hidden sm:inline-flex">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+            <Link href="/enroll" aria-label="Enroll newborn" className="btn-primary px-2.5 sm:px-3.5">
               <Icon name="enroll" className="h-4 w-4" />
-              Enroll newborn
+              <span className="hidden sm:inline">Enroll newborn</span>
             </Link>
             <Link
               href="/notifications"
@@ -205,7 +278,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               >
                 {initials(user)}
               </span>
-              <div className="hidden leading-tight sm:block">
+              <div className="hidden leading-tight md:block">
                 <p className="text-sm font-semibold text-ink">
                   {user ? `${user.first_name} ${user.last_name}` : ''}
                 </p>
@@ -215,7 +288,16 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
+        {/* Small screens: the safety notice moves to a slim bar (the pill above is md+) */}
+        <p
+          role="note"
+          className="flex items-center justify-center gap-1.5 bg-surface-high px-3 py-1.5 text-center text-[11px] font-medium text-brand-800 md:hidden"
+        >
+          <Icon name="info" className="h-3.5 w-3.5 shrink-0" />
+          Non-diagnostic prototype — not a medical device
+        </p>
+
+        <main className="min-w-0 flex-1 p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );
