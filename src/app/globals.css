@@ -3,38 +3,56 @@
 @tailwind utilities;
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-surface font-sans text-ink antialiased;
 }
 
+/* Visible keyboard focus everywhere (accessibility, important in a clinical tool) */
+:focus-visible {
+  @apply outline-none ring-2 ring-brand-500 ring-offset-1;
+}
+
+/* ---------- Cards ---------- */
 .card {
-  @apply rounded-xl border border-slate-200 bg-white p-5 shadow-sm;
+  @apply rounded-lg bg-white p-4 shadow-card ring-1 ring-slate-900/[0.04];
 }
 
+/* Small uppercase label used above numbers, in nav groups, table headers */
+.eyebrow {
+  @apply text-[10px] font-semibold uppercase tracking-[0.5px] text-ink-muted;
+}
+
+/* ---------- Buttons ---------- */
 .btn-primary {
-  @apply inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex items-center justify-center gap-2 rounded bg-brand-600 px-3.5 py-2 text-[13px] font-semibold text-white shadow-card transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .btn-secondary {
-  @apply inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex items-center justify-center gap-2 rounded bg-surface-mid px-3.5 py-2 text-[13px] font-semibold text-ink transition hover:bg-surface-high disabled:cursor-not-allowed disabled:opacity-50;
 }
 
+.btn-danger {
+  @apply inline-flex items-center justify-center gap-2 rounded bg-danger px-3.5 py-2 text-[13px] font-semibold text-white shadow-card transition hover:bg-danger-ink disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+/* ---------- Forms ---------- */
 .input {
-  @apply w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
+  @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-card outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
 }
 
 .label {
-  @apply mb-1 block text-sm font-medium text-slate-700;
+  @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.6px] text-slate-600;
 }
 
+/* ---------- Tables ---------- */
 .table-base {
   @apply w-full text-left text-sm;
 }
 .table-base thead th {
-  @apply border-b border-slate-200 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500;
+  @apply border-b border-surface-mid px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.5px] text-ink-muted;
 }
 .table-base tbody td {
-  @apply border-b border-slate-100 px-4 py-3;
+  @apply border-b border-surface-low px-4 py-3;
 }
 .table-base tbody tr:hover {
-  @apply bg-slate-50;
+  @apply bg-surface-low;
 }
