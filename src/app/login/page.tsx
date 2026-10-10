@@ -50,7 +50,9 @@ export default function LoginPage() {
         </span>
         <p>
           <strong className="mr-1 text-[11px] uppercase tracking-[0.3px] text-amber-950">Clinical notice:</strong>
+
           Smart belt is a <span className="font-medium underline">prototype, not a diagnostic device</span>. In an
+
           emergency, follow your hospital bedside protocol.
         </p>
       </aside>
@@ -71,9 +73,12 @@ export default function LoginPage() {
                   <Icon name="pulse" className="h-5 w-5" />
                 </span>
                 <div>
+
                   <p className="text-base font-bold tracking-tight text-white">Smart belt</p>
+                  
                   <p className="text-[11px] font-medium uppercase tracking-[0.55px] text-sky-400">
-                    Doctor Dashboard
+                    Neonatal telemetry
+
                   </p>
                 </div>
               </div>
@@ -93,7 +98,9 @@ export default function LoginPage() {
                 <p className="text-xs leading-relaxed text-slate-300">
                   <span className="font-semibold text-white">Parents &amp; caregivers: </span>
                   this portal is for doctors and administrators only. To follow your newborn, please use the
+
                   mobile app.
+
                 </p>
               </div>
             </div>
@@ -107,7 +114,9 @@ export default function LoginPage() {
                 <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
                   <Icon name="pulse" className="h-5 w-5" />
                 </span>
+
                 <p className="text-base font-bold text-ink">Smart belt</p>
+
               </div>
 
               <h1 className="text-2xl font-bold tracking-tight text-ink">Doctor &amp; administrator access</h1>
